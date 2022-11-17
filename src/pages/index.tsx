@@ -5,8 +5,10 @@ import Link from "next/link";
 import { signIn, signOut, useSession } from "next-auth/react";
 
 import { trpc } from "../utils/trpc";
+import { FormEvent, useState } from "react";
 
 const Messages = () => {
+  const { data: session } = useSession();
   const { data: messages, isLoading } = trpc.guestbook.getAll.useQuery();
 
   if (isLoading) {
@@ -20,10 +22,49 @@ const Messages = () => {
       {messages?.map((msg, ind) => {
         return (
           <div key={ind}>
-            <p>{msg.message} - <span>{msg.name}</span></p>
+            <p>
+              {msg.message} - <span>{msg.name}</span> {msg.name === session?.user?.name && (
+              <span>x</span>)}
+            </p>
+            
           </div>
         )
       })}
+    </div>
+  )
+}
+
+const MessageForm = () => {
+  const [message, setMessage] = useState('');
+  const { data: session } = useSession();
+  const addMessage = trpc.guestbook.postMessage.useMutation();
+
+
+  function handleSubmit(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    // make trpc mutation call to post the contents of our message state to our postgres db 
+    if (session !== null) {
+      addMessage.mutate({ message, name: session.user?.name as string})
+    }
+    setMessage('');
+  }
+
+  function handleChange(e: React.FormEvent<HTMLInputElement>) {
+    setMessage(e.currentTarget.value)
+  }
+
+  return (
+    <div>
+      <form onSubmit={handleSubmit}>
+        <input
+          name="message"
+          placeholder="Add a message"
+          type='text'
+          value={message}
+          onChange={handleChange}
+        />
+      <button type="submit">Post Message</button>
+      </form>
     </div>
   )
 }
@@ -54,6 +95,8 @@ const Home: NextPage = () => {
             <>
               <p>Hi {session.user?.name}</p>
               <button onClick={() => signOut()}>Sign Out</button>
+              <MessageForm />
+
             </>
           ) : (
           <button onClick={() => signIn('discord')}>Login With Discord</button>         
