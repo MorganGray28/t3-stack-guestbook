@@ -9,7 +9,25 @@ import { FormEvent, useState } from "react";
 
 const Messages = () => {
   const { data: session } = useSession();
+  const utils = trpc.useContext();
   const { data: messages, isLoading } = trpc.guestbook.getAll.useQuery();
+  const deleteMessage = trpc.guestbook.deleteMessage.useMutation({
+    onMutate: () => {
+      utils.guestbook.getAll.cancel();
+      const optimisticUpdate = utils.guestbook.getAll.getData();
+
+      if (optimisticUpdate) {
+        utils.guestbook.getAll.setData(optimisticUpdate);
+      }
+    },
+    onSettled: () => {
+      utils.guestbook.getAll.invalidate();
+    }
+  });
+
+  function handleDelete(id:string) {
+    deleteMessage.mutate(id);
+  }
 
   if (isLoading) {
     return (
@@ -24,7 +42,7 @@ const Messages = () => {
           <div key={ind}>
             <p>
               {msg.message} - <span>{msg.name}</span> {msg.name === session?.user?.name && (
-              <span>x</span>)}
+              <span onClick={() => handleDelete(msg.id)}>x</span>)}
             </p>
             
           </div>
@@ -37,7 +55,20 @@ const Messages = () => {
 const MessageForm = () => {
   const [message, setMessage] = useState('');
   const { data: session } = useSession();
-  const addMessage = trpc.guestbook.postMessage.useMutation();
+  const utils = trpc.useContext();
+  const addMessage = trpc.guestbook.postMessage.useMutation({
+    onMutate: () => {
+      utils.guestbook.getAll.cancel();
+      const optimisticUpdate = utils.guestbook.getAll.getData();
+
+      if (optimisticUpdate) {
+        utils.guestbook.getAll.setData(optimisticUpdate);
+      }
+    }, 
+    onSettled: () => {
+      utils.guestbook.getAll.invalidate()
+    }
+  });
 
 
   function handleSubmit(e: FormEvent<HTMLFormElement>) {

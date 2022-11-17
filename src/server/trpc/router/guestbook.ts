@@ -8,6 +8,7 @@ export const guestbookRouter = router({
         select: {
           name: true,
           message: true,
+          id: true,
         },
         orderBy: {
           createdAt: "desc"
@@ -31,6 +32,21 @@ export const guestbookRouter = router({
           data: {
             name: input.name,
             message: input.message
+          }
+        })
+      } catch (err) {
+        console.log(err);
+      }
+    }),
+  deleteMessage: protectedProcedure
+    .input(
+      z.string()
+  )
+    .mutation(async ({ ctx, input }) => {
+      try {
+        await ctx.prisma.guestbook.delete({
+          where: {
+            id: input
           }
         })
       } catch (err) {
