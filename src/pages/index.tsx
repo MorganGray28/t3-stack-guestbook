@@ -6,6 +6,28 @@ import { signIn, signOut, useSession } from "next-auth/react";
 
 import { trpc } from "../utils/trpc";
 
+const Messages = () => {
+  const { data: messages, isLoading } = trpc.guestbook.getAll.useQuery();
+
+  if (isLoading) {
+    return (
+      <p>Loading Messages...</p>
+    )
+  }
+
+  return (
+    <div>
+      {messages?.map((msg, ind) => {
+        return (
+          <div key={ind}>
+            <p>{msg.message} - <span>{msg.name}</span></p>
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
 const Home: NextPage = () => {
   const { data: session, status } = useSession();
 
@@ -23,43 +45,25 @@ const Home: NextPage = () => {
         <link rel="icon" href="/favicon.ico" />
       </Head>
       <main className={styles.main}>
-        <h1>Guestbook</h1>
-        {session ? (
-          <>
-            <p>Hi {session.user?.name}</p>
-            <button onClick={() => signOut()}>Sign Out</button>
-          </>
-        ) : (
-        <button onClick={() => signIn('discord')}>Login With Discord</button>         
-        )
-      }
+        <h1 className={styles.header}>Guestbook</h1>
+        <p className={styles.subheader}>
+        Tutorial for <code>create-t3-app</code>
+        </p>
+        <div className={styles.session}>
+          {session ? (
+            <>
+              <p>Hi {session.user?.name}</p>
+              <button onClick={() => signOut()}>Sign Out</button>
+            </>
+          ) : (
+          <button onClick={() => signIn('discord')}>Login With Discord</button>         
+          )
+          }
+          <Messages />
+          </div>
       </main>
     </>
   );
 };
 
 export default Home;
-
-const AuthShowcase: React.FC = () => {
-  const { data: sessionData } = useSession();
-
-  const { data: secretMessage } = trpc.auth.getSecretMessage.useQuery(
-    undefined, // no input
-    { enabled: sessionData?.user !== undefined },
-  );
-
-  return (
-    <div className={styles.authContainer}>
-      <p className={styles.showcaseText}>
-        {sessionData && <span>Logged in as {sessionData?.user?.name}</span>}
-        {secretMessage && <span> - {secretMessage}</span>}
-      </p>
-      <button
-        className={styles.loginButton}
-        onClick={sessionData ? () => signOut() : () => signIn()}
-      >
-        {sessionData ? "Sign out" : "Sign in"}
-      </button>
-    </div>
-  );
-};
